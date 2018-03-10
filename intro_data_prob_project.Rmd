@@ -1,0 +1,226 @@
+---
+title: "Exploring Health, Alcoholism, and Obesity Using BRFSS Data"
+output: 
+  html_document: 
+    fig_height: 4
+    highlight: pygments
+    theme: spacelab
+---
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(scales)
+```
+
+### Load data
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+* * *
+
+## Part 1: Data
+
+The Behavioral Risk Factor Surveillance System (BRFSS) is an American survey that documents risk behaviors and preventative practices that might have an effect on adult health. The information is collected via a cross-sectional telephone survey that uses a standardized questionnaire and collects interviews using both landline and cellular phones. The survey is conducted in each US state (the stated goal is at least 4,000 interviews per state), as well as some US territories.
+
+The sampling process differs between surveys conducted over landline phones versus surveys conducted over cellular phones. For landline phones, the study used disproportionate stratified sampling. This involves dividing telephone numbers into two groups, or strata, based on density: one strata for telephone numbers in high density areas versus a second strata for numbers in medium density areas. For each landline phone number, one adult is chosen at random for the survey. For cellular phones, random sampling was used. This sample was generated using area codes and prefix combinations.
+
+Because random sampling was used in the selection of the survey participants, we can safely assume that this data can be generalized to the larger US population. However, this is an observational study and not an experiment. No random assignment was utilized once the samples were created. Thus we cannot determine causality from looking at this data alone.
+
+The survey data was weighted in an attempt to remove bias from the sample. This included weighing demographic variables such as age, sex, race, ethnicity, and education level. However, the sample may still be skewed by a non-response bias. Since the surveys were conducted randomly via telephone, only willing respondents participated. Thus, those who refrained from participating are not included in the sample. This might include people who do not answer phone calls from numbers they do not recognize or who refuse to respond to unsolicited phone calls.
+
+Source: https://www.cdc.gov/brfss/data_documentation/pdf/UserguideJune2013.pdf
+
+* * *
+
+## Part 2: Research questions
+
+**Research question 1:** Do individuals with generally good health typically have access to healthcare? Moreover, do these healthy individuals exercise regularly?
+
+I want to see if access to healthcare correlates to better health overall. I also want to see if healthy individuals report exercising regularly.
+
+**Research question 2:** Are males or females more likely to be binge drinkers? Similarly, are males or females more likely to be heavy drinkers?
+
+I'm interested in seeing if there is a relationship between gender and drinking behavior. Do men engage in binge drinking more often than women? Is one gender more likely to have problems with alcoholism when compared to the other gender?
+
+**Research question 3:** Is there a noticeable correlation between income level and obesity?
+
+I would like to research whether individuals with low income levels are more or less likely to be overweight or obese, especially for people living around or even below minimum wage. 
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+**1.) Do individuals with generally good health typically have access to healthcare? Moreover, do these healthy individuals exercise regularly?**
+
+We are working with the following three variables:
+
+X_rfhlth: This variable categorizes respondents based on their reported health condition. The two categories are Good or Better Health and Fair or Poor Health.
+
+X_hcvu651: This variable categorizes respondents based on their access to healthcare. The two categories are those who have healthcare coverage versus those who do not.
+
+X_totinda: This variable categorizes respondents based on how often they exercise. The two categories are whether the individual exercised in the past 30 days or if they have not.
+
+We first select the X_rfhlth variable and create a summary table. The data shows that a large majority of respondents report having good or better health; the ratio of respondents with good health versus poor health is about 4-to-1.
+
+```{r}
+brfss2013 %>%
+    select(X_rfhlth)%>%
+    group_by(X_rfhlth)%>%
+    summarize(count=n())
+```
+
+Next, we select the X_hcvu651 variable and create a summary table. The data shows that a large majority of respondents have healthcare coverage; the ratio of respondents with healthcare versus those without is about 5-to-1.
+
+```{r}
+brfss2013 %>%
+    select(X_hcvu651)%>%
+    group_by(X_hcvu651)%>%
+    summarize(count=n())
+```
+
+Next, we select the X_totinda variable and create a summary table. The data shows that the majority of respondents report that they exercised within the last 30 days; the ratio of respondents who exercised versus those who did not is about 2.5-to-1.
+
+```{r}
+brfss2013 %>%
+    select(X_totinda)%>%
+    group_by(X_totinda)%>%
+    summarize(count=n())
+```
+
+We then create a bar plot that shows healthcare coverage based on reported health condition. We first select the two variables, X_rfhlth and X_hcvu651. We filter out the respondents who fall in the NA category for both variables. Then we create a bar plot that uses reported health condition as the X-axis variable and healthcare coverage as the variable that is used to "fill" the bars. The Y-axis is a percentage of the total. (Note that some extra code is added to the ggplot() function in order to transform the Y-axis labels into percentages and to rotate the X-axis labels.)
+
+The data shows that amongst those who report having fair or poor health, a higher percentage of respondents do not have healthcare coverage. However, the majority of respondents have healthcare coverage for both healthy and unhealthy individuals.
+
+```{r}
+brfss2013%>%
+    select(X_rfhlth, X_hcvu651)%>%
+    filter(!is.na(X_rfhlth),!is.na(X_hcvu651))%>%
+    ggplot(aes(x=X_rfhlth,fill=X_hcvu651))+geom_bar(position="fill") + ggtitle("Healthcare of Healthy vs Unhealthy Individuals") + scale_y_continuous(labels = percent_format()) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Lastly, we create a bar plot that shows exercise based on reported health condition. We first select the two variables, X_rfhlth and X_totinda. We filter out the respondents who fall in the NA category for both variables. Then we create a bar plot that uses reported health condition as the X-axis variable and exercise as the variable that is used to "fill" the bars. The Y-axis is a percentage of the total. (As with the last bar plot, some extra code is added to the ggplot() function in order to transform the Y-axis labels into percentages and to rotate the X-axis labels.)
+
+The data shows that amongst those who report having fair or poor health, a higher percentage of respondents had no physical activity in the past 30 days. Amongst healthy individuals, about 25% reported that they did not exercise, whereas amongst unhealthy individuals about 50% reported that they did not exercise.
+
+```{r}
+brfss2013%>%
+    select(X_rfhlth, X_totinda)%>%
+    filter(!is.na(X_rfhlth),!is.na(X_totinda))%>%
+    ggplot(aes(x=X_rfhlth,fill=X_totinda))+geom_bar(position="fill") + ggtitle("Exercise in Healthy vs Unhealthy Individuals") + scale_y_continuous(labels = percent_format()) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+In conclusion, the data suggests that there is a link between: A) overall health and access to healthcare, as well as B) overall health and exercise. Unhealthy individuals are more likely to have no healthcare and are also more likely to not exercise.
+
+The positive correlation between good health and exercise appears to be very strong. Whereas most unhealthy individuals still have healthcare coverage, only about half of unhealthy individuals exercise.
+
+**2.) Are males or females more likely to be binge drinkers? Similarly, are males or females more likely to be heavy drinkers?**
+
+We are working with the following three variables:
+
+sex: This is the gender of the participants, which is categorized as Male or Female.
+
+X_rfbing5: This variable shows which respondents engaged in binge drinking in the past 30 days. Binge drinking is defined as five or more drinks for males and four or more drinks for females.
+
+X_rfdrhv4: This variable shows which respondents are heavy drinkers. Heavy drinking is defined as more than two drinks per day for males and more than one drink per day for females.
+
+We first take the sex variable and create a summary table. The data shows that there are more female respondents than male respondents; the females outnumber males by a ratio of almost 1.5-to-1.
+
+```{r}
+brfss2013 %>%
+    select(sex)%>%
+    group_by(sex)%>%
+    summarize(count=n())
+```
+
+Next, we take the X_rfbing5 variable and create a summary table. The data shows that a large majority of respondents did not binge drink. Those who did not binge drink outnumber those who did by a ratio of almost 7-to-1.
+
+```{r}
+brfss2013 %>%
+    select(X_rfbing5)%>%
+    group_by(X_rfbing5)%>%
+    summarize(count=n())
+```
+
+Next, we take the X_rfdrhv4 variable and create a summary table. The data shows that a very large majority of respondents are not heavy drinkers. Those who are not heavy drinkers outnumber those who are by about 17-to-1.
+
+```{r}
+brfss2013 %>%
+    select(X_rfdrhv4)%>%
+    group_by(X_rfdrhv4)%>%
+    summarize(count=n())
+```
+
+Now we create a bar plot that shows binge drinking based on gender. First, we select the sex and X_rfbing5 variables. Next, we filter out the results in the NA category for both variables. Then we create a bar plot with sex as the X-axis variable. Binge drinking is the variable used to "fill" the bars. The y-axis is a percentage of the total. (Note that some extra code is added to the ggplot() function in order to transform the Y-axis labels into percentages.)
+
+The data shows that males are about twice as likely to engage in binge drinking compared to females. However, for both males and females, a large majority of respondents did not binge drink at all.
+
+```{r}
+brfss2013%>%
+    select(sex, X_rfbing5)%>%
+    filter(!is.na(sex),!is.na(X_rfbing5))%>%
+    ggplot(aes(x=sex,fill=X_rfbing5))+geom_bar(position="fill") + ggtitle("Binge Drinkers by Gender") + scale_y_continuous(labels = percent_format())
+```
+
+Lastly, we create a bar plot that shows heavy drinking based on gender. First, we select the sex and X_rfdrhv4 variables. Next, we filter out the results in the NA category for both variables. Then we create a bar plot with sex as the X-axis variable. Heavy drinking is the variable used to "fill" the bars. The y-axis is a percentage of the total. (Like with the previous bar plot, some extra code is added to the ggplot() function in order to transform the Y-axis labels into percentages.)
+
+The data shows that males are slightly more likely to be heavy drinkers compared to females. However, for both males and females, the vast majority of respondents are not heavy drinkers.
+
+```{r}
+brfss2013%>%
+    select(sex, X_rfdrhv4)%>%
+    filter(!is.na(sex),!is.na(X_rfdrhv4))%>%
+    ggplot(aes(x=sex,fill=X_rfdrhv4))+geom_bar(position="fill") + ggtitle("Heavy Drinkers by Gender")  + scale_y_continuous(labels = percent_format())
+```
+
+In conclusion, males are more likely than females to engage in both binge drinking and heavy drinking. However, the difference between males and females is more pronounced for binge drinking, since males are about twice as likely to binge drink compared to females. For both genders, binge drinking is uncommon and heavy drinking is rare.
+
+Future studies might try to find causality for this correlation, particularly in binge drinking. For instance, discovering whether there are environmental or biological factors that cause many more men to binge drink than women.
+
+**3.) Is there a noticeable correlation between income level and obesity?**
+
+We are working with the following two variables:
+
+X_incomg: This variable categorizes respondents based on their yearly income level. The categories span from less than fifteen-thousand dollars to more than fifty-thousand dollars.
+
+X_bmi5cat: This variable categorizes respondents based on their weight. The categories are Underweight, Normal Weight, Overweight, and Obese.
+
+We first select the X_incomg variable and create a summary report. The data shows that a plurality of respondents earn fifty-thousand dollars or more annually. The second largest category are respondents who earn between fifteen thousand and twenty-five thousand dollars. In total, 239,216 respondents earn less than fifty-thousand dollars annually, compared to the 181,131 respondents who earn more than fifty-thousand dollars.
+
+```{r}
+brfss2013 %>%
+    select(X_incomg)%>%
+    group_by(X_incomg)%>%
+    summarize(count=n())
+```
+
+Next, we select the X_bmi5cat variable and create a summary table. The data shows that a very small proportion of respondents are considered Underweight. The category with the highest count total is Overweight, followed closely by Normal Weight, and then Obese. This suggests that the majority of respondents are Overweight or Obese.
+
+```{r}
+brfss2013 %>%
+    select(X_bmi5cat)%>%
+    group_by(X_bmi5cat)%>%
+    summarize(count=n())
+```
+
+Lastly, we create a bar plot that shows the weight based on yearly income. First, we select the X_incomg and X_bmi5cat variables. Next, we filter out the results in the NA category for both variables. Then we create a bar plot with income as the X-axis variable. Weight is the variable used to "fill" the bars. The y-axis is a percentage of the total. (Note that some extra code is added to the ggplot() function in order to transform the Y-axis labels into percentages and to rotate the X-axis labels.)
+
+The data shows that as the income levels go down, there is a noticeable increase in the percentage of respondents who are Obese. Likewise, there is also a noticeable increase in the percentage of respondents who are Underweight. However, for all income levels, the majority of respondents are either Overweight or Obese.
+
+```{r}
+brfss2013%>%
+    select(X_incomg, X_bmi5cat)%>%
+    filter(!is.na(X_incomg),!is.na(X_bmi5cat))%>%
+    ggplot(aes(x=X_incomg,fill=X_bmi5cat))+geom_bar(position="fill") + ggtitle("Weight by Yearly Income") + scale_y_continuous(labels = percent_format()) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+In conclusion, the data suggests that there may be a link between poverty and obesity, as well as a link between poverty and being underweight. Compared to high earners, those at the lowest income levels are more likely to fall into the extreme ends of the weight spectrum.
+
+Future research could focus more on respondents who are on these extreme ends of the weight spectrum. It would also be useful to tease out the respondents who earn more than fifty-thousand annually, since this might include extremely high earners who earn far above the national average. It is possible that the very wealthy have a very different weight distribution compared to the rest of the population.
